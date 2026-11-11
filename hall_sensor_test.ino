@@ -19,4 +19,5 @@ void loop() {
     Serial.println("Switch open");
     digitalWrite(LED, LOW);
   }
+  delay(500);
 }
