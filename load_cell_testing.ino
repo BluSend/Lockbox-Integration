@@ -3,6 +3,7 @@
 // Define the data and clock pins
 const uint8_t DATA_PINS[4] = {2, 4, 6, 8}; 
 const uint8_t CLOCK_PINS[4] = {3, 5, 7, 9};
+#define testing_id 1 // id: 1-4, change the number for testing each load cell
 
 // Parameters for converting raw value to gram
 int32_t offset[4] = {0, 0, 0, 0}; // varies among different load cells
@@ -31,8 +32,8 @@ void tare_cell(uint8_t i){
   offset[i] = (int32_t)(sum / N);
 }
 
-float read_loadcell(uint8_t i){
-  float val = (float)(readRaw(i) - offset[i]) / factor[i]; // grams
+float raw2grams(uint8_t i, int32_t raw){
+  float val = (float)(raw - offset[i]) / factor[i]; // grams
 
   /* if(val < 0){
     val = 0;
@@ -52,27 +53,19 @@ void setup() {
   Serial.println("Adafruit HX711 Test!");
   
   // Initialize the HX711
-  hx711[0].begin();
+  hx711[testing_id - 1].begin();
   
   // Tare channel A with gain 128 (standard for 4-wire load cells)
   Serial.println("Tareing...");
-  hx711[0].tareA(0); 
+  hx711[testing_id - 1].tareA(0); 
 
   // ---- Offset estimation (load cell must be EMPTY) ----
   Serial.println("Measuring offset... keep load cell empty");
   delay(500); 
-  for (int i = 0; i < 3; i++) {                 // discard first few readings
-    hx711[0].readChannelBlocking(CHAN_A_GAIN_128);
-  }
-  int64_t sum = 0;
-  const int N = 10;
-  for (int i = 0; i < N; i++) {
-    sum += hx711[0].readChannelBlocking(CHAN_A_GAIN_128);
-  }
-  offset[0] = (int32_t)(sum / N);
+  tare_cell(testing_id - 1);
 
   Serial.print("Offset: ");
-  Serial.println(offset[0]);
+  Serial.println(offset[testing_id - 1]);
   // ------------------------------------------------------
 
   
@@ -81,15 +74,14 @@ void setup() {
 
 void loop() {
   // Read blocking from Channel A with Gain 128
-  int32_t raw = hx711[0].readChannelBlocking(CHAN_A_GAIN_128);
-  float val = (float)(raw - offset[0]) / factor[0]; // grams
+  int32_t raw_value = readRaw(testing_id - 1);
+  float val = raw2grams(testing_id - 1, raw_value);
 
-  /* if(val < 0){
-    val = 0;
-  } */ // uncomment this condition after testing has done
-  
+
+  Serial.print("Testing Sensor ");
+  Serial.println(testing_id);
   Serial.print("Raw: ");
-  Serial.print(raw);
+  Serial.print(raw_value);
   Serial.print("      ");
   Serial.print("g: ");
   Serial.println(val);
